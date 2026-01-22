@@ -4,6 +4,12 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon --exec ts-node index.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --check .",
+    "format:write": "prettier --write .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -18,9 +24,14 @@
     "nodemon": "^3.1.11"
   },
   "devDependencies": {
+    "@eslint/js": "^9.0.0",
     "@types/express": "^5.0.6",
     "@types/node": "^25.0.9",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.2.5",
     "ts-node": "^10.9.2",
+    "typescript-eslint": "^8.0.0",
     "typescript": "^5.9.3"
   }
 }

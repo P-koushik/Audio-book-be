@@ -5,12 +5,10 @@ import { User } from "../models/user";
 export const is_authenticated = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   const authHeader = req.headers.authorization;
-  const id_token = authHeader?.startsWith("Bearer ")
-    ? authHeader.slice(7)
-    : undefined;
+  const id_token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined;
 
   if (!id_token) {
     res.status(401).json({ message: "Authentication failed: No token provided" });
@@ -50,9 +48,7 @@ export const is_authenticated = async (
   }
 
   if (!db_user.organization) {
-    res
-      .status(403)
-      .json({ message: "Access denied. Your organization has been removed." });
+    res.status(403).json({ message: "Access denied. Your organization has been removed." });
     return;
   }
 
