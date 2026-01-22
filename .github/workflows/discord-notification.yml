@@ -1,0 +1,152 @@
+name: Repository Monitor (Discord)
+
+on:
+  push:
+  pull_request:
+    types: [opened, closed, reopened]
+  create:
+  delete:
+  issues:
+    types: [opened, closed, reopened]
+  issue_comment:
+    types: [created]
+  watch:
+    types: [started]
+  fork:
+  release:
+    types: [published]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build message
+        id: msg
+        shell: bash
+        run: |
+          EVENT_TYPE="${{ github.event_name }}"
+          REPO="${{ github.repository }}"
+          ACTOR="${{ github.actor }}"
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          case "$EVENT_TYPE" in
+            push)
+              MESSAGE=$(cat <<EOF
+          🔨 New Push
+          Repo: $REPO
+          Actor: $ACTOR
+          Branch: ${{ github.ref_name }}
+          Commit: ${{ github.sha }}
+          Message: ${{ github.event.head_commit.message }}
+          Run: $RUN_URL
+          EOF
+              )
+              ;;
+            pull_request)
+              MESSAGE=$(cat <<EOF
+          🔀 Pull Request (${{ github.event.action }})
+          Repo: $REPO
+          Actor: $ACTOR
+          Title: ${{ github.event.pull_request.title }}
+          PR: ${{ github.event.pull_request.html_url }}
+          Run: $RUN_URL
+          EOF
+              )
+              ;;
+            issues)
+              MESSAGE=$(cat <<EOF
+          📌 Issue (${{ github.event.action }})
+          Repo: $REPO
+          Actor: $ACTOR
+          Title: ${{ github.event.issue.title }}
+          Issue: ${{ github.event.issue.html_url }}
+          Run: $RUN_URL
+          EOF
+              )
+              ;;
+            issue_comment)
+              MESSAGE=$(cat <<EOF
+          💬 Issue Comment
+          Repo: $REPO
+          Actor: $ACTOR
+          Issue: ${{ github.event.issue.title }}
+          Comment: ${{ github.event.comment.html_url }}
+          Run: $RUN_URL
+          EOF
+              )
+              ;;
+            watch)
+              MESSAGE=$(cat <<EOF
+          ⭐ Starred
+          Repo: $REPO
+          Starred by: $ACTOR
+          Run: $RUN_URL
+          EOF
+              )
+              ;;
+            fork)
+              MESSAGE=$(cat <<EOF
+          🍴 Forked
+          Repo: $REPO
+          Forked by: $ACTOR
+          Fork: ${{ github.event.forkee.html_url }}
+          Run: $RUN_URL
+          EOF
+              )
+              ;;
+            release)
+              MESSAGE=$(cat <<EOF
+          🚀 Release Published
+          Repo: $REPO
+          Actor: $ACTOR
+          Release: ${{ github.event.release.name }}
+          Link: ${{ github.event.release.html_url }}
+          Run: $RUN_URL
+          EOF
+              )
+              ;;
+            create|delete)
+              MESSAGE=$(cat <<EOF
+          🏷️ Ref ${EVENT_TYPE}
+          Repo: $REPO
+          Actor: $ACTOR
+          Type: ${{ github.event.ref_type }}
+          Ref: ${{ github.event.ref }}
+          Run: $RUN_URL
+          EOF
+              )
+              ;;
+            *)
+              MESSAGE=$(cat <<EOF
+          🔔 Event: $EVENT_TYPE
+          Repo: $REPO
+          Actor: $ACTOR
+          Run: $RUN_URL
+          EOF
+              )
+              ;;
+          esac
+
+          echo "message<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$MESSAGE" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Send to Discord
+        shell: bash
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          MESSAGE: ${{ steps.msg.outputs.message }}
+        run: |
+          if [ -z "$DISCORD_WEBHOOK_URL" ]; then
+            echo "Missing DISCORD_WEBHOOK_URL secret"
+            exit 1
+          fi
+
+          # Build JSON payload safely on one line
+          PAYLOAD=$(python3 -c 'import os, json; print(json.dumps({"content": os.environ.get("MESSAGE","")[:1800]}))')
+
+          # Send and show response (helps debug 403/404)
+          curl -i -X POST "$DISCORD_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -H "User-Agent: GitHubActions-DiscordWebhook" \
+            --data-raw "$PAYLOAD"
