@@ -1,67 +1,57 @@
-import { NextFunction, Request, Response } from "express";
+import type { Request, Response, NextFunction } from "express";
 import auth from "../services/firebase";
 import { User } from "../models/user";
 
-export const is_authenticated = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  const authHeader = req.headers.authorization;
-  const id_token = authHeader?.startsWith("Bearer ")
-    ? authHeader.slice(7)
-    : undefined;
-
-  if (!id_token) {
-    res.status(401).json({ message: "Authentication failed: No token provided" });
-    return;
-  }
-
-  let decoded_token;
-  try {
-    decoded_token = await auth().verifyIdToken(id_token); // ✅ now id_token is string
-  } catch (error) {
-    res.status(401).json({ message: "Authentication failed: Invalid or expired token" });
-    return;
-  }
-
-  const email = decoded_token.email?.toLowerCase();
-  if (!email) {
-    res.status(401).json({ message: "Authentication failed: Missing email in token" });
-    return;
-  }
-
-  const db_user = await User.findOne({
-    email,
-    is_active: true,
-  });
-
-  if (!db_user) {
-    // Optional: delete Firebase user if you really want this behavior
-    try {
-      await auth().deleteUser(decoded_token.uid);
-    } catch (error) {
-      // log only
-      console.warn("Failed to delete orphaned Firebase user", String(error));
-    }
-
-    res.status(403).json({ message: "Access denied. Please ask admin for access." });
-    return;
-  }
-
-  if (!db_user.organization) {
-    res
-      .status(403)
-      .json({ message: "Access denied. Your organization has been removed." });
-    return;
-  }
-
-  if (!db_user.role) {
-    res.status(403).json({ message: "Access denied. Your role has been removed." });
-    return;
-  }
-
-  // If you have custom typing for req.user, this is fine
-  req.user = db_user;
-  next();
+export type TAuthPayload = {
+  uid: string;
+  email?: string;
+  name?: string;
+  photoUrl?: string;
 };
+
+export type TAuthRequest = Request & {
+  auth?: TAuthPayload;
+};
+
+const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+  let token: string | undefined;
+
+  if (req.headers.authorization?.startsWith("Bearer ")) {
+    token = req.headers.authorization.slice(7);
+  } else if ((req as any).cookies?.token) {
+    token = (req as any).cookies.token;
+  }
+
+  if (!token) return res.status(401).json({ error: "No token provided" });
+
+  try {
+    const decoded = await auth().verifyIdToken(token);
+
+    const email = decoded.email?.toLowerCase();
+    if (!email) return res.status(401).json({ error: "Token missing email" });
+
+    const name = decoded.name?.trim() || email;
+    const photoUrl = decoded.picture;
+
+    let dbUser = await User.findOneAndUpdate({ email }, {
+      email,
+      name,
+      firebase_uid: decoded.uid,
+      photo_url: photoUrl,
+    });
+
+    (req as TAuthRequest).auth = {
+      uid: decoded.uid,
+      email,
+      name,
+      photoUrl,
+    };
+
+    req.user = dbUser
+    return next();
+  } catch (err) {
+    return res.status(401).json({ error: "Invalid or expired token" });
+  }
+};
+
+export default authMiddleware;
