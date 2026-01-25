@@ -1,6 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
 import auth from "../services/firebase";
-import { User } from "../models/user";
 
 export type TAuthPayload = {
   uid: string;
@@ -13,7 +12,7 @@ export type TAuthRequest = Request & {
   auth?: TAuthPayload;
 };
 
-const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+const authMiddleware = async (req: TAuthRequest, res: Response, next: NextFunction) => {
   let token: string | undefined;
 
   if (req.headers.authorization?.startsWith("Bearer ")) {
@@ -33,21 +32,12 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
     const name = decoded.name?.trim() || email;
     const photoUrl = decoded.picture;
 
-    let dbUser = await User.findOneAndUpdate({ email }, {
-      email,
-      name,
-      firebase_uid: decoded.uid,
-      photo_url: photoUrl,
-    });
-
-    (req as TAuthRequest).auth = {
+    req.auth = {
       uid: decoded.uid,
       email,
       name,
       photoUrl,
     };
-
-    req.user = dbUser
     return next();
   } catch (err) {
     return res.status(401).json({ error: "Invalid or expired token" });
