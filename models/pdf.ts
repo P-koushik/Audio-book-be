@@ -6,6 +6,10 @@ const pdfSchema = new mongoose.Schema({
   originalPdfUrl: { type: String, required: true },
   status: { type: String, required: true, default: 'uploaded' },
   audioUrl: { type: String },
+  pageCount: { type: Number },
+  textChunkCount: { type: Number },
+  textExtractedAt: { type: Date },
+  textExtractionError: { type: String },
 }, { timestamps: true });
 
 export const PDF = mongoose.model('PDF', pdfSchema);

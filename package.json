@@ -4,6 +4,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon --exec ts-node index.ts",
+    "worker:extract-pdf-text": "ts-node workers/extract-pdf-text.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -17,12 +18,14 @@
     "firebase-admin": "^13.6.0",
     "mongoose": "^9.1.4",
     "multer": "^2.0.2",
-    "nodemon": "^3.1.11"
+    "nodemon": "^3.1.11",
+    "pdf-parse": "^1.1.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/multer": "^2.0.0",
     "@types/node": "^25.0.9",
+    "@types/pdf-parse": "^1.1.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   }
