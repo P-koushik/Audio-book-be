@@ -11,9 +11,18 @@ export const get_pdf_by_id = async (req: Request, res: Response) => {
             .select("pageNumber chunkIndex text charCount")
             .lean();
 
+        const text = chunks.map((c) => c.text).join("\n\n");
+        const charCount = chunks.reduce((sum, c) => sum + (c.charCount ?? 0), 0);
+        const pageCount = new Set(chunks.map((c) => c.pageNumber)).size;
+
         res.status(200).json({
             message: "PDF fetched successfully",
-            data: chunks,
+            data: {
+                text,
+                charCount,
+                chunkCount: chunks.length,
+                pageCount,
+            },
         });
 
     } catch (err) {
