@@ -1,10 +1,21 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ES2018",
     "module": "CommonJS",
-    "moduleResolution": "Node",
-    "esModuleInterop": true,
+    "rootDir": "./",
+    "outDir": ".dist",
     "strict": true,
+    "baseUrl": "./",
     "skipLibCheck": true,
-  }
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "forceConsistentCasingInFileNames": true,
+    "paths": {
+      "@/*": ["./*"],
+      "~/*": ["/tests/*"]
+    },
+    "typeRoots": ["./types", "./node_modules/@types"]
+  },
+  "include": ["./**/*"],
+  "exclude": ["node_modules"]
 }
