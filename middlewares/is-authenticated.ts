@@ -42,6 +42,15 @@ export const is_authenticated = async (
   res: Response,
   next: NextFunction,
 ): Promise<void> => {
+  const firebaseAuth = auth();
+  if (!firebaseAuth) {
+    res.status(500).json({
+      error:
+        "Firebase is not configured on the server (missing service account credentials).",
+    });
+    return;
+  }
+
   const id_token =
     req.headers.authorization?.split(" ")[1] ?? (req as any).cookies?.token;
 
@@ -52,7 +61,7 @@ export const is_authenticated = async (
 
   let decoded_token: { uid: string; email?: string; name?: string; picture?: string };
   try {
-    decoded_token = await auth().verifyIdToken(id_token);
+    decoded_token = await firebaseAuth.verifyIdToken(id_token);
   } catch {
     res.status(401).json({ error: "Invalid or expired authentication token" });
     return;
@@ -84,7 +93,7 @@ export const is_authenticated = async (
   if (!db_user) {
     // Delete Firebase user if DB check fails (pre-provisioned user flow)
     try {
-      await auth().deleteUser(decoded_token.uid);
+      await firebaseAuth.deleteUser(decoded_token.uid);
     } catch {
       // ignore
     }

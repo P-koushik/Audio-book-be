@@ -7,8 +7,14 @@ import { FileRoutes } from "./routes/file-upload";
 
 const app = express();
 
-if (!env.MONGO_URL) {
-  console.log("MONGO_URL environment variable is not set");
+if (
+  env.MONGO_URL === "NA" ||
+  (!env.MONGO_URL.startsWith("mongodb://") && !env.MONGO_URL.startsWith("mongodb+srv://"))
+) {
+  console.error(
+    'Invalid or missing "MONGO_URL". It must start with "mongodb://" or "mongodb+srv://".',
+  );
+  process.exit(1);
 }
 
 mongoose

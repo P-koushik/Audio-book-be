@@ -11,11 +11,23 @@
     "moduleResolution": "node",
     "forceConsistentCasingInFileNames": true,
     "paths": {
-      "@/*": ["./*"],
-      "~/*": ["/tests/*"]
+      "@/*": [
+        "./*"
+      ],
+      "~/*": [
+        "/tests/*"
+      ]
     },
-    "typeRoots": ["./types", "./node_modules/@types"]
+    "typeRoots": [
+      "./types",
+      "./node_modules/@types"
+    ]
   },
-  "include": ["./**/*"],
-  "exclude": ["node_modules"]
+  "include": [
+    "**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".dist"
+  ]
 }
