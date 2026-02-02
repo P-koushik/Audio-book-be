@@ -7,7 +7,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node .dist/index.js",
     "worker:extract-pdf-text": "ts-node workers/extract-pdf-text.ts",
-    "worker:initiate-step": "ts-node workers/initiate-step.ts",
+    "worker:initiate-process": "ts-node workers/initiate-process.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -16,6 +16,7 @@
   "description": "",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.975.0",
+    "cheerio": "^1.2.0",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "firebase-admin": "^13.6.0",

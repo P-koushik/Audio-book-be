@@ -11,6 +11,7 @@ type TEnv = {
   AWS_SECRET_ACCESS_KEY: string | "NA";
   AWS_REGION: string | "NA";
   S3_BUCKET: string | "NA";
+  CONVERT_API: string | "NA"
 };
 
 const getEnv = (key: string, fallback: string = "NA"): string => {
@@ -31,4 +32,5 @@ export const env: TEnv = {
   AWS_SECRET_ACCESS_KEY: getEnv("AWS_SECRET_ACCESS_KEY"),
   AWS_REGION: getEnv("AWS_REGION"),
   S3_BUCKET: getEnv("S3_BUCKET"),
+  CONVERT_API: getEnv("CONVERT_API")
 };

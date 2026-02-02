@@ -10,6 +10,10 @@ const pdfSchema = new mongoose.Schema({
   textChunkCount: { type: Number },
   textExtractedAt: { type: Date },
   textExtractionError: { type: String },
+
+  markdown: { type: String },
+  markdownGeneratedAt: { type: Date },
+  initiateProcessError: { type: String },
 }, { timestamps: true });
 
 export const PDF = mongoose.model('PDF', pdfSchema);
