@@ -6,8 +6,8 @@
     "dev": "nodemon --exec ts-node index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node .dist/index.js",
-    "dd": "docker compose up --build",
     "worker:extract-pdf-text": "ts-node workers/extract-pdf-text.ts",
+    "worker:initiate-step": "ts-node workers/initiate-step.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
