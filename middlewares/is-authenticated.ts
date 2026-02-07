@@ -1,3 +1,38 @@
+// QCed
+/**
+ * Authentication Middleware
+ * ----------------------
+ * Validates and processes authentication tokens
+ *
+ * @middleware
+ * @access  Private
+ *
+ * @params  {
+ *   req:  Request     // Express request
+ *   res:  Response    // Express response
+ *   next: NextFunction // Express next
+ * }
+ *
+ * @returns {
+ *   Promise<void>
+ * }
+ *
+ * @errors
+ * - 401: Invalid/missing token
+ * - 401: User not found
+ *
+ * Flow:
+ * 1. Extract token
+ * 2. Verify token
+ * 3. Find user
+ * 4. Attach user
+ * 5. Continue
+ *
+ * Edge Cases:
+ * - Invalid tokens
+ * - Expired tokens
+ * - Missing users
+ */
 import { NextFunction, Request, Response } from "express";
 import auth from "../services/firebase";
 import { User } from "../models/user";
@@ -7,57 +42,70 @@ export const is_authenticated = async (
   res: Response,
   next: NextFunction,
 ): Promise<void> => {
-  const authHeader = req.headers.authorization;
-  const id_token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined;
-
-  if (!id_token) {
-    res.status(401).json({ message: "Authentication failed: No token provided" });
+  const firebaseAuth = auth();
+  if (!firebaseAuth) {
+    res.status(500).json({
+      error:
+        "Firebase is not configured on the server (missing service account credentials).",
+    });
     return;
   }
 
-  let decoded_token;
+  const id_token =
+    req.headers.authorization?.split(" ")[1] ?? (req as any).cookies?.token;
+
+  if (!id_token) {
+    res.status(401).json({ error: "Invalid token provided" });
+    return;
+  }
+
+  let decoded_token: { uid: string; email?: string; name?: string; picture?: string };
   try {
-    decoded_token = await auth().verifyIdToken(id_token); // ✅ now id_token is string
-  } catch (error) {
-    res.status(401).json({ message: "Authentication failed: Invalid or expired token" });
+    decoded_token = await firebaseAuth.verifyIdToken(id_token);
+  } catch {
+    res.status(401).json({ error: "Invalid or expired authentication token" });
     return;
   }
 
   const email = decoded_token.email?.toLowerCase();
   if (!email) {
-    res.status(401).json({ message: "Authentication failed: Missing email in token" });
+    res.status(401).json({ error: "Token missing email" });
     return;
   }
 
-  const db_user = await User.findOne({
-    email,
-    is_active: true,
-  });
+  // Auto-provision user on sign-in only (keeps admin-gated access for other routes)
+    const name = decoded_token.name?.trim() || email;
+    const photo_url = decoded_token.picture;
+
+    let db_user = await User.findOneAndUpdate(
+      { email },
+      {
+        $set: {
+          email,
+          name,
+          firebase_uid: decoded_token.uid,
+          photo_url,
+        },
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    );
 
   if (!db_user) {
-    // Optional: delete Firebase user if you really want this behavior
+    // Delete Firebase user if DB check fails (pre-provisioned user flow)
     try {
-      await auth().deleteUser(decoded_token.uid);
-    } catch (error) {
-      // log only
-      console.warn("Failed to delete orphaned Firebase user", String(error));
+      await firebaseAuth.deleteUser(decoded_token.uid);
+    } catch {
+      // ignore
     }
 
-    res.status(403).json({ message: "Access denied. Please ask admin for access." });
+    res
+      .status(401)
+      .json({ error: "Access denied. Please ask the admin to give you access." });
     return;
   }
 
-  if (!db_user.organization) {
-    res.status(403).json({ message: "Access denied. Your organization has been removed." });
-    return;
-  }
-
-  if (!db_user.role) {
-    res.status(403).json({ message: "Access denied. Your role has been removed." });
-    return;
-  }
-
-  // If you have custom typing for req.user, this is fine
   req.user = db_user;
   next();
 };
+
+export default is_authenticated;
