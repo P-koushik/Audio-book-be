@@ -4,7 +4,7 @@
     "module": "CommonJS",
     "rootDir": "./",
     "outDir": ".dist",
-    "strict": true,
+    "strict": false,
     "baseUrl": "./",
     "skipLibCheck": true,
     "esModuleInterop": true,

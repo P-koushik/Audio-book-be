@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { uploadToS3 } from "../../services/s3";
 import { PDF } from "../../models/pdf";
-import { initiateProcess } from "../../workers/initiate-process";
+import { processPdfStage } from "../../workers/initiate-process";
 
 export const upload_pdf = async (req: Request, res: Response) => {
     if (!req.user?._id) return res.status(401).json({ message: "Unauthorized" });
@@ -25,7 +25,7 @@ export const upload_pdf = async (req: Request, res: Response) => {
         await pdf.save();
 
         // Kick off the PDF → HTML → cleanup → Markdown pipeline in the background.
-        void initiateProcess(String(pdf._id)).catch((err) => {
+        void processPdfStage(String(pdf._id)).catch((err) => {
             console.error("initiateProcess failed", err);
         });
 

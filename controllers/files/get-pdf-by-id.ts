@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { PdfMarkdownChunk } from "../../models/pdfMarkdownChunk";
 import { PDF } from "../../models/pdf";
+import { PdfMarkdown } from "../../models/pdfMarkdown";
 
 
 export const get_pdf_by_id = async (req: Request, res: Response) => {
@@ -8,22 +8,12 @@ export const get_pdf_by_id = async (req: Request, res: Response) => {
     const { id } = req.params;
 
     try {
-        const [pdf, chunks] = await Promise.all([
-            PDF.findOne({ _id: id, userId: req.user._id }).select("pageCount").lean(),
-            PdfMarkdownChunk.find({ pdfId: id, userId: req.user._id })
-                .sort({ chunkIndex: 1 })
-                .select("text")
-                .lean(),
-        ]);
-
-        const text = chunks.map((c) => c.text).join("");
-        const charCount = chunks.reduce((sum, c) => sum + (c.charCount ?? 0), 0);
+        const md = await PdfMarkdown.findOne({ pdfId: id, userId: req.user._id }).select("text charCount").lean()
 
         res.status(200).json({
             message: "PDF fetched successfully",
             data: {
-                text,
-                pageCount: pdf?.pageCount,
+                text: md?.text ?? "",
             },
         });
 

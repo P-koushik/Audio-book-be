@@ -7,7 +7,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node .dist/index.js",
     "worker:extract-pdf-text": "ts-node workers/extract-pdf-text.ts",
-    "worker:initiate-process": "ts-node workers/initiate-process.ts",
+    "worker:initiate-process": "ts-node -r tsconfig-paths/register workers/initiate-process.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -15,8 +15,10 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.975.0",
+    "@aws-sdk/client-s3": "^3.983.0",
+    "@aws-sdk/s3-request-presigner": "^3.983.0",
     "cheerio": "^1.2.0",
+    "convertapi": "^1.15.0",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "firebase-admin": "^13.6.0",
@@ -31,6 +33,7 @@
     "@types/node": "^25.0.9",
     "@types/pdf-parse": "^1.1.5",
     "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
     "typescript": "^5.9.3"
   }
 }

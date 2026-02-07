@@ -6,9 +6,8 @@ This worker:
 
 - Downloads `PDF.originalPdfUrl`
 - Extracts text page-by-page
-- Splits each page into chunks
-- Stores chunks in MongoDB (`PdfTextChunk` collection)
-- Stores extraction metadata on the `PDF` document (`pageCount`, `textChunkCount`, `textExtractedAt`)
+- Normalizes and stores text in MongoDB (`pdf-text` collection via `PdfText`)
+- Stores extraction metadata on the `PDF` document (`pageCount`, `textCharCount`, `textExtractedAt`)
 
 ### Install
 
@@ -35,7 +34,7 @@ npm run worker:extract-pdf-text -- --pdfId <mongo_id>
 Tune chunking:
 
 ```bash
-npm run worker:extract-pdf-text -- --chunkSize 1600 --chunkOverlap 200
+npm run worker:extract-pdf-text
 ```
 
 ## Initiate PDF → HTML → cleanup → Markdown
@@ -45,7 +44,6 @@ This worker runs the same pipeline that is triggered on upload, but in batch (us
 Pipeline stages are tracked on `PDF.status`:
 
 - `processing:pdf_to_html`
-- `processing:cleanup_html`
 - `processing:html_to_md`
 - `processing:extract_pdf_text`
 - `completed` (or `failed`)

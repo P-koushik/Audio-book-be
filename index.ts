@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import express, { Request, Response } from "express";
+import express from "express";
 import { env } from "./constants/env";
 import routes from "./routes/signin";
 import { corsMiddleware } from "./middlewares/cors";
