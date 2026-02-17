@@ -5,6 +5,8 @@ const user_schema = new Schema<TUser>(
   {
     email: { type: String, required: true, unique: true },
     name: { type: String, required: true },
+    photourl: { type: String, default: "" },
+    is_active: { type: Boolean, default: false },
   },
   {
     timestamps: true,

@@ -18,45 +18,26 @@ export const is_authenticated = async (
   let decoded_token;
   try {
     decoded_token = await auth().verifyIdToken(id_token); // ✅ now id_token is string
-  } catch (error) {
+  } catch {
     res.status(401).json({ message: "Authentication failed: Invalid or expired token" });
     return;
   }
 
-  const email = decoded_token.email?.toLowerCase();
+  const email = decoded_token.email;
+  const name = (decoded_token.name ?? decoded_token.email ?? "user").toLowerCase();
+  const photourl = decoded_token.picture ?? "";
+
   if (!email) {
     res.status(401).json({ message: "Authentication failed: Missing email in token" });
     return;
   }
 
-  const db_user = await User.findOne({
-    email,
-    is_active: true,
-  });
-
-  if (!db_user) {
-    // Optional: delete Firebase user if you really want this behavior
-    try {
-      await auth().deleteUser(decoded_token.uid);
-    } catch (error) {
-      // log only
-      console.warn("Failed to delete orphaned Firebase user", String(error));
-    }
-
-    res.status(403).json({ message: "Access denied. Please ask admin for access." });
-    return;
-  }
-
-  if (!db_user.organization) {
-    res.status(403).json({ message: "Access denied. Your organization has been removed." });
-    return;
-  }
-
-  if (!db_user.role) {
-    res.status(403).json({ message: "Access denied. Your role has been removed." });
-    return;
-  }
-
+  const db_user = await User.findOneAndUpdate(
+    { email },
+    { $set: { name, photourl, is_active: true } },
+    { new: true, upsert: true, setDefaultsOnInsert: true },
+  );
+  
   // If you have custom typing for req.user, this is fine
   req.user = db_user;
   next();
