@@ -143,7 +143,7 @@ jobs:
           fi
 
           # Build JSON payload safely on one line
-          PAYLOAD=$(python3 -c 'import os, json; print(json.dumps({"content": os.environ.get("MESSAGE","")[:1800]}))')
+          PAYLOAD=$(python3 -c 'import os, json; print(json.dumps({"content": os.environ.get("MESSAGE","")[:1800],"flags": 4}))')
 
           # Send and show response (helps debug 403/404)
           curl -i -X POST "$DISCORD_WEBHOOK_URL" \
