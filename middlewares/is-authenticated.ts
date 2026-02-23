@@ -37,7 +37,7 @@ export const is_authenticated = async (
     { $set: { name, photourl, is_active: true } },
     { new: true, upsert: true, setDefaultsOnInsert: true },
   );
-  
+
   // If you have custom typing for req.user, this is fine
   req.user = db_user;
   next();

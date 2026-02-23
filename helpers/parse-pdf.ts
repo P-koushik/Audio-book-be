@@ -3,6 +3,7 @@ import { convertPdfToHtml } from "./pdf-html";
 import { convertHtmlToMd } from "./html-md";
 import { Pdf_md } from "../models/pdf-markdown";
 import { getPresignedGetUrl } from "../services/s3";
+import cheerio from "cheerio"
 
 import fs from "node:fs";
 import path from "node:path";
@@ -42,42 +43,16 @@ const cleanupPunctuationSpacing = (s: string) =>
 const removeSpacedLetters = (s: string) =>
   s.replace(/\b(?:[A-Za-z]\s){2,}[A-Za-z]\b/g, (m) => m.replace(/\s+/g, ""));
 
-const fixCommonInWordSplits = (s: string) =>
-  s
-    .replace(/\bsn arl\b/gi, "snarl")
-    .replace(/\bfu ry\b/gi, "fury")
-    .replace(/\bof f\b/gi, "off")
-    .replace(/\bHe y\b/g, "Hey")
-    .replace(/\bY e s\b/g, "Yes");
-
-const joinDropCapLine = (s: string) =>
-  // "\nS\nometimes" -> "\nSometimes"
-  s.replace(/(^|\n)\s*([A-Z])\s*\n\s*([a-z])/g, (_m, start: string, cap: string, next: string) => {
-    return `${start}${cap}${next}`;
-  });
-
-const stripMarkdownImages = (s: string) =>
-  s
-    .replace(/!\[[^\]]*\]\([^)]+\)/g, "")
-    .replace(/!\[[^\]]*\]\[[^\]]+\]/g, "");
-
-const cleanMarkdown = (md: string) => {
-  let out = md;
-  out = stripMarkdownImages(out);
-  out = joinDropCapLine(out);
-  out = removeSpacedLetters(out);
-  out = fixCommonInWordSplits(out);
-  out = out.replace(/"\s+([A-Za-z])/g, '"$1'); // `" Y e s"` -> `"Y e s"`
-  out = out.replace(/[ \t]+\n/g, "\n");
-  return out.trim();
-};
-
-
 const tryLoadCheerio = async (): Promise<null | ((html: string) => any)> => {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const cheerio = require("cheerio");
-    return (html: string) => cheerio.load(html, { decodeEntities: true });
+    return (html: string) => {
+      try {
+        return cheerio.load(html, { decodeEntities: true });
+      } catch (e) {
+        console.error("Error loading cheerio:", e);
+        return null;
+      }
+    };
   } catch {
     return null;
   }
@@ -158,9 +133,22 @@ const writeCleanHtmlCopy = async (htmlFilePath: string) => {
   const rawHtml = await readFile(htmlFilePath, "utf8");
   const load = await tryLoadCheerio();
 
-  const cleanedHtml = load
-    ? cleanHtmlUsingCheerio(load, rawHtml)
-    : cleanHtmlFallback(rawHtml);
+  let cleanedHtml: string;
+  if (load) {
+    try {
+      const loadFn = load(rawHtml);
+      if (loadFn) {
+        cleanedHtml = cleanHtmlUsingCheerio(loadFn, rawHtml);
+      } else {
+        cleanedHtml = cleanHtmlFallback(rawHtml);
+      }
+    } catch (e) {
+      console.error("Error in cleanHtmlUsingCheerio:", e);
+      cleanedHtml = cleanHtmlFallback(rawHtml);
+    }
+  } else {
+    cleanedHtml = cleanHtmlFallback(rawHtml);
+  }
 
   const tempDir = ensureTempDir();
   const cleanedPath = path.join(tempDir, `${Date.now()}-clean.html`);
@@ -169,28 +157,50 @@ const writeCleanHtmlCopy = async (htmlFilePath: string) => {
   return cleanedPath;
 };
 
-/* -------------------------------- pipeline -------------------------------- */
+const splitMarkdownIntoChunks = (markdown: string, chunkSize: number = 5000): string[] => {
+  const chunks: string[] = [];
+  let currentChunk = "";
+
+  const paragraphs = markdown.split("\n\n");
+
+  for (const paragraph of paragraphs) {
+    if ((currentChunk + paragraph).length > chunkSize && currentChunk.length > 0) {
+      chunks.push(currentChunk.trim());
+      currentChunk = paragraph;
+    } else {
+      currentChunk += (currentChunk ? "\n\n" : "") + paragraph;
+    }
+  }
+
+  if (currentChunk.trim()) {
+    chunks.push(currentChunk.trim());
+  }
+
+  return chunks;
+};
 
 export const pdfparse = async (pdf: TPdf) => {
-  const accessUrl = await getPresignedGetUrl(pdf.pdf_url);
+  const accessUrl = await getPresignedGetUrl(pdf.pdf_key);
 
-  // 1) PDF -> HTML
   const htmlFilePath = await convertPdfToHtml(accessUrl);
 
-  // 2) Clean HTML
   const cleanedHtmlFilePath = await writeCleanHtmlCopy(htmlFilePath);
-  console.log("Clean HTML:", cleanedHtmlFilePath);
 
-  // 3) HTML -> Markdown
   const md = await convertHtmlToMd(cleanedHtmlFilePath);
 
-  // 4) Clean Markdown
-  const cleanedMd = cleanMarkdown(md);
+  const chunks = splitMarkdownIntoChunks(md, 5000); // Split into 5000 char chunks
 
-  // 5) Upsert to DB
-  await Pdf_md.findOneAndUpdate(
-    { user_id: pdf.user_id, pdf_id: pdf._id },
-    { $set: { markdown: cleanedMd } },
-    { upsert: true, new: true },
-  );
+  // Delete previous chunks for this PDF
+  await Pdf_md.deleteMany({ user_id: pdf.user_id, pdf_id: pdf._id });
+
+  // Create documents for each chunk
+  const documents = chunks.map((chunk, index) => ({
+    user_id: pdf.user_id,
+    pdf_id: pdf._id,
+    markdown: chunk,
+    chunk_index: index,
+    total_chunks: chunks.length,
+  }));
+
+  await Pdf_md.insertMany(documents);
 };

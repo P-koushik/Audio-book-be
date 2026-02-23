@@ -21,5 +21,5 @@ export const env: TEnv = {
   AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID || "NA",
   AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY || "NA",
   S3_BUCKET: process.env.S3_BUCKET || "NA",
-  CONVERT_API: process.env.CONVERT_API || "NA"
+  CONVERT_API: process.env.CONVERT_API || "NA",
 };

@@ -19,6 +19,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.990.0",
     "@aws-sdk/s3-request-presigner": "^3.990.0",
+    "cheerio": "^1.2.0",
     "convertapi": "^1.15.0",
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
@@ -30,6 +31,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
+    "@types/cheerio": "^0.22.35",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^25.0.9",

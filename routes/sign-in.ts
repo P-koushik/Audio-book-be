@@ -6,4 +6,4 @@ const router = Router();
 
 router.post("/signin", is_authenticated, signIn);
 
-export {router as signInRoutes}
+export { router as signInRoutes };

@@ -3,7 +3,7 @@ import express from "express";
 import { env } from "./constants/env";
 import { signInRoutes } from "./routes/sign-in";
 import { pdfRoutes } from "./routes/pdf";
-import cors from "cors"
+import cors from "cors";
 
 const app = express();
 
@@ -22,8 +22,8 @@ mongoose
 
 app.use(
   cors({
-    origin: "http://localhost:3000"
-  })
+    origin: "http://localhost:3000",
+  }),
 );
 
 app.use(express.json());
