@@ -5,9 +5,7 @@ const pdf_markdown_schema = new Schema(
   {
     user_id: { type: mongoose.Types.ObjectId, ref: "User" },
     pdf_id: { type: mongoose.Types.ObjectId, ref: "Pdf" },
-    markdown: { type: String },
-    chunk_index: { type: Number, required: true },
-    total_chunks: { type: Number, required: true },
+    markdown: { type: String }
   },
   {
     timestamps: true,

@@ -3,8 +3,6 @@ import mongoose, { Schema, model } from "mongoose";
 
 const pdf_stage_schema = new Schema(
   {
-    ConvertingpdfToHtml: { type: Boolean, default: false },
-    CleanupHtml: { type: Boolean, default: false },
     ConvertingHtmlToMd: { type: Boolean, default: false },
     CheckingForErrors: { type: Boolean, default: false },
     ChunkingPdf: { type: Boolean, default: false },
